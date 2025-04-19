@@ -21,7 +21,7 @@ module kusdc::system {
 
     public fun mint(system: &mut System, cap: &mut TreasuryCap<KUSDC>, coin: Coin<USDC>, ctx: &mut TxContext): Coin<KUSDC> {
         let amount = coin::value(&coin);
-        let exchange_rate = get_exchange_rate(system);
+        let exchange_rate = get_usdc_to_kusdc_exchange_rate(system);
         let kusdc_amount = amount * exchange_rate / 1_000_000;
         system.total_kusdc_minted = system.total_kusdc_minted + kusdc_amount;
         coin::put(&mut system.balance_usdc, coin);
@@ -38,14 +38,19 @@ module kusdc::system {
         system.total_kusdc_minted = system.total_kusdc_minted + value;
     }
 
-    public fun get_exchange_rate(system: &System): u64 {
+    public fun get_kusdc_to_usdc_exchange_rate(system: &System): u64 {
+        let total_usdc_supply = balance::value(&system.balance_usdc);
+        let total_kusdc_minted = system.total_kusdc_minted;
+        total_usdc_supply * 1_000_000 / total_kusdc_minted
+    }
+
+    public fun get_usdc_to_kusdc_exchange_rate(system: &System): u64 {
         let total_usdc_supply = balance::value(&system.balance_usdc);
         let total_kusdc_minted = system.total_kusdc_minted;
         total_kusdc_minted * 1_000_000 / total_usdc_supply
     }
 
-    public fun faucet(cap: &mut TreasuryCap<KUSDC>, ctx: &mut TxContext): Coin<KUSDC> {
-        let amount = 100000000;
+    public fun faucet(cap: &mut TreasuryCap<KUSDC>, amount: u64, ctx: &mut TxContext): Coin<KUSDC> {
         coin::mint<KUSDC>(cap, amount, ctx)
     }
 }

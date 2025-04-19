@@ -1,7 +1,7 @@
 [package]
 name = "kusdc_wrapper"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) 
-published-at = "0xf92b375b7c9fbfd6f01ba80e9904addc495976b1d774f6f72146423e8376bea8"
+published-at = "0xae198e321d2195f1cdc62e8aba72bd7e67bbed83ad12bcc7247a0168776197fe"
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 
@@ -22,7 +22,7 @@ kusdc = { local = "../mock_kUSDC_testnet" }
 # override use `override = true`
 
 [addresses]
-kusdc_wrapper = "0xf92b375b7c9fbfd6f01ba80e9904addc495976b1d774f6f72146423e8376bea8"
+kusdc_wrapper = "0xae198e321d2195f1cdc62e8aba72bd7e67bbed83ad12bcc7247a0168776197fe"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.

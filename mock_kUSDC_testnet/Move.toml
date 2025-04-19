@@ -1,6 +1,6 @@
 [package]
 name = "kusdc"
-published-at = "0x1db0391e731e9edf7c6d8a692638295094d179d1a3a668bcc8ed28db52524148"
+published-at = "0x2760667194b41b40e2c046b572a98bc7e737d22afcde1f1c1c7458cd902a0b0c"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Movew
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
@@ -20,7 +20,7 @@ usdc = { local = "../usdc" }
 # override use `override = true`
 
 [addresses]
-kusdc = "0x1db0391e731e9edf7c6d8a692638295094d179d1a3a668bcc8ed28db52524148"
+kusdc = "0x2760667194b41b40e2c046b572a98bc7e737d22afcde1f1c1c7458cd902a0b0c"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.

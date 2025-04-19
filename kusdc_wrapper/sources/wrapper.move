@@ -8,7 +8,7 @@ module kusdc_wrapper::wrapper {
     use sui::clock::{Clock};
     use kusdc_wrapper::PT::{PT};
     use legato_math::fixed_point64::{FixedPoint64, Self};
-
+    use kamo::router::{Self};
     public struct State has key, store {
         id: UID,
         market: Market<PT, KUSDC>,
@@ -29,35 +29,56 @@ module kusdc_wrapper::wrapper {
         transfer::share_object(state);
     }
 
-    public fun get_exchange_rate(system: &System): FixedPoint64 {
-        let exchange_rate = system::get_exchange_rate(system);
+    public fun get_usdc_to_kusdc_exchange_rate(system: &System): FixedPoint64 {
+        let exchange_rate = system::get_usdc_to_kusdc_exchange_rate(system);
+        fixed_point64::create_from_rational(exchange_rate as u128, 1000000)
+    }
+
+    public fun get_kusdc_to_usdc_exchange_rate(system: &System): FixedPoint64 {
+        let exchange_rate = system::get_kusdc_to_usdc_exchange_rate(system);
         fixed_point64::create_from_rational(exchange_rate as u128, 1000000)
     }
     
     public fun add_liquidity(state: &mut State, pt_coin: Coin<PT>, sy_coin: Coin<KUSDC>, system: &System, clock: &Clock, ctx: &mut TxContext): Coin<LP<PT, KUSDC>> {
-        amm::add_liquidity(&mut state.market, pt_coin, sy_coin, get_exchange_rate(system), clock, ctx)
+        amm::add_liquidity(&mut state.market, pt_coin, sy_coin, get_kusdc_to_usdc_exchange_rate(system), clock, ctx)
     }
     public fun remove_liquidity(state: &mut State, lp: Coin<LP<PT, KUSDC>>, ctx: &mut TxContext): (Coin<PT>, Coin<KUSDC>) {
         amm::remove_liquidity(&mut state.market, lp, ctx)
     }
     public fun swap_exact_pt_for_sy(state: &mut State, pt_coin: Coin<PT>, system: &System, clock: &Clock, ctx: &mut TxContext): Coin<KUSDC> {
-        amm::swap_exact_pt_for_sy(&mut state.market, get_exchange_rate(system), pt_coin, clock, ctx)
+        amm::swap_exact_pt_for_sy(&mut state.market, get_kusdc_to_usdc_exchange_rate(system), pt_coin, clock, ctx)
     }
 
     public fun swap_sy_for_exact_pt(state: &mut State, sy_coin: Coin<KUSDC>, system: &System, pt_amount: u64, clock: &Clock, ctx: &mut TxContext): (Coin<KUSDC>, Coin<PT>) {
-        amm::swap_sy_for_exact_pt(&mut state.market, get_exchange_rate(system), sy_coin, pt_amount, clock, ctx)
+        amm::swap_sy_for_exact_pt(&mut state.market, get_kusdc_to_usdc_exchange_rate(system), sy_coin, pt_amount, clock, ctx)
     }
 
     public fun swap_sy_for_exact_pt_with_hot_potato(state: &mut State, hot_potato: SellYoBorrowPt<PT, KUSDC>, sy_coin: Coin<KUSDC>, system: &System, pt_amount: u64, clock: &Clock, ctx: &mut TxContext): (Coin<KUSDC>, Coin<PT>, SellYoBorrowPt<PT, KUSDC>) {
-        amm::swap_sy_for_exact_pt_with_hot_potato(&mut state.market, hot_potato, get_exchange_rate(system), sy_coin, pt_amount, clock, ctx)
+        amm::swap_sy_for_exact_pt_with_hot_potato(&mut state.market, hot_potato, get_kusdc_to_usdc_exchange_rate(system), sy_coin, pt_amount, clock, ctx)
     }
 
     public fun swap_exact_pt_for_sy_with_hot_potato(state: &mut State, hot_potato: BuyYoBorrowSy<PT, KUSDC>, pt_coin: Coin<PT>, system: &System, clock: &Clock, ctx: &mut TxContext): (Coin<KUSDC>, BuyYoBorrowSy<PT, KUSDC>) {
-        amm::swap_exact_pt_for_sy_with_hot_potato(&mut state.market, hot_potato, get_exchange_rate(system), pt_coin, clock, ctx)
+        amm::swap_exact_pt_for_sy_with_hot_potato(&mut state.market, hot_potato, get_kusdc_to_usdc_exchange_rate(system), pt_coin, clock, ctx)
+    }
+
+    public fun router_swap_exact_sy_for_pt(state: &mut State, system: &System, sy_in_coin: Coin<KUSDC>, max_pt_amount: u64, clock: &Clock, ctx: &mut TxContext): (Coin<PT>) {
+        router::swap_exact_sy_for_pt(&mut state.market, get_kusdc_to_usdc_exchange_rate(system), sy_in_coin, max_pt_amount, clock, ctx)
+    }
+
+    public fun router_swap_exact_pt_for_sy(state: &mut State, system: &System, exact_pt_in_coin: Coin<PT>, clock: &Clock, ctx: &mut TxContext): Coin<KUSDC> {
+        router::swap_exact_pt_for_sy(&mut state.market, get_kusdc_to_usdc_exchange_rate(system), exact_pt_in_coin, clock, ctx)
+    }
+
+    public fun router_swap_exact_sy_for_yo(state: &mut State, system: &System, exact_sy_in_coin: Coin<KUSDC>, max_sy_borrow: u64, clock: &Clock, ctx: &mut TxContext): (Coin<KUSDC>, YieldObject<PT, KUSDC>) {
+        router::swap_exact_sy_for_yo(&mut state.registry, &mut state.market, get_kusdc_to_usdc_exchange_rate(system), exact_sy_in_coin, max_sy_borrow, clock, ctx)
+    }
+
+    public fun router_swap_exact_yo_for_sy(state: &mut State, system: &System, yo: YieldObject<PT, KUSDC>, clock: &Clock, ctx: &mut TxContext): (Coin<KUSDC>) {
+        router::swap_exact_yo_for_sy(&mut state.registry, &mut state.market, get_kusdc_to_usdc_exchange_rate(system), yo, clock, ctx)
     }
 
     public fun mint(state: &mut State, kusdc_coin_in: Coin<KUSDC>, system: &System, clock: &Clock, ctx: &mut TxContext): (Coin<PT>, YieldObject<PT, KUSDC>) {
-        sy_tokenization::mint(&mut state.registry, &state.market, kusdc_coin_in, get_exchange_rate(system), clock, ctx)
+        sy_tokenization::mint(&mut state.registry, &state.market, kusdc_coin_in, get_kusdc_to_usdc_exchange_rate(system), clock, ctx)
     }
 
     public fun split(state: &mut State, yield_object: &mut YieldObject<PT, KUSDC>, amount: u64, ctx: &mut TxContext): YieldObject<PT, KUSDC> {
@@ -65,19 +86,19 @@ module kusdc_wrapper::wrapper {
     }
 
     public fun merge(state: &mut State, self: &mut YieldObject<PT, KUSDC>, yield_object: YieldObject<PT, KUSDC>, system: &System) {
-        sy_tokenization::merge(&state.market, self, yield_object, get_exchange_rate(system))
+        sy_tokenization::merge(&state.market, self, yield_object, get_kusdc_to_usdc_exchange_rate(system))
     }
 
     public fun redeem_before_maturity(state: &mut State, pt_coin_in: Coin<PT>, yield_object: YieldObject<PT, KUSDC>, system: &System, clock: &Clock, ctx: &mut TxContext): Coin<KUSDC> {
-        sy_tokenization::redeem_before_maturity(&mut state.registry, &state.market, pt_coin_in, yield_object, get_exchange_rate(system), clock, ctx)
+        sy_tokenization::redeem_before_maturity(&mut state.registry, &state.market, pt_coin_in, yield_object, get_kusdc_to_usdc_exchange_rate(system), clock, ctx)
     }
   
     public fun redeem_after_maturity(state: &mut State, pt_coin_in: Coin<PT>, system: &System, clock: &Clock, ctx: &mut TxContext): Coin<KUSDC> {
-        sy_tokenization::redeem_after_maturity(&mut state.registry, &state.market, pt_coin_in, get_exchange_rate(system), clock, ctx)
+        sy_tokenization::redeem_after_maturity(&mut state.registry, &state.market, pt_coin_in, get_kusdc_to_usdc_exchange_rate(system), clock, ctx)
     }
 
     public fun earn_interest(state: &State, yield_object: &mut YieldObject<PT, KUSDC>, system: &System, clock: &Clock) {
-        sy_tokenization::earn_interest<PT, KUSDC>(&state.market, yield_object, get_exchange_rate(system), clock)
+        sy_tokenization::earn_interest<PT, KUSDC>(&state.market, yield_object, get_kusdc_to_usdc_exchange_rate(system), clock)
     }
 
     public fun claim_interest(state: &mut State, yield_object: &mut YieldObject<PT, KUSDC>, clock: &Clock, ctx: &mut TxContext): Coin<KUSDC> {
